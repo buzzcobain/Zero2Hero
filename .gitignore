@@ -1,0 +1,50 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate.log
+
+# IntelliJ Related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The Directory-Level Ignorance Files
+.classpath
+.project
+.settings/
+
+# Visual Studio Code
+.vscode/
+
+# Flutter/Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android
+.gradle/
+local.properties
+**/local.properties
+**/Flutter/Generated.xcconfig
+**/Flutter/flutter_export_environment.sh
+
+# iOS
+**/Pods/
+**/Podfile.lock
+DerivedData/
+
+# App persistent local files (used during dev/debugging if saved in project dir)
+/user_profile.json
+/progress_photos/
