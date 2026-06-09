@@ -48,3 +48,4 @@ DerivedData/
 # App persistent local files (used during dev/debugging if saved in project dir)
 /user_profile.json
 /progress_photos/
+/coverage/
