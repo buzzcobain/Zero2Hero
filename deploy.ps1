@@ -21,21 +21,14 @@ $NETWORK_DIR = "\\Dtunes\Harris\Projects\Zero2Hero-build"
 $LOCAL_DIR   = "C:\Users\netbu\OneDrive\Desktop\Projects\Zero2Hero\build"
 
 # -- Decide where to build ---------------------------------------------------
-if ($Local) {
-    $BUILD_DIR = $LOCAL_DIR
-    $env:GRADLE_USER_HOME = "$env:USERPROFILE\.gradle"
-    Write-Host "Build output -> LOCAL ($BUILD_DIR)" -ForegroundColor Yellow
-} else {
-    $BUILD_DIR = $NETWORK_DIR
-    $env:GRADLE_USER_HOME = "\\Dtunes\Harris\Projects\.gradle-cache"
-    Write-Host "Build output -> NETWORK ($BUILD_DIR)" -ForegroundColor Cyan
+# We always build locally to avoid Gradle daemon UNC errors.
+# If -Local is not specified, we copy the final APKs to the network share after building.
+$env:GRADLE_USER_HOME = "$env:USERPROFILE\.gradle"
 
-    if (-not (Test-Path $BUILD_DIR)) {
-        New-Item -ItemType Directory -Path $BUILD_DIR -Force | Out-Null
-    }
-    if (-not (Test-Path $env:GRADLE_USER_HOME)) {
-        New-Item -ItemType Directory -Path $env:GRADLE_USER_HOME -Force | Out-Null
-    }
+if ($Local) {
+    Write-Host "Build output -> LOCAL ($LOCAL_DIR)" -ForegroundColor Yellow
+} else {
+    Write-Host "Build output -> LOCAL with NETWORK copy to $NETWORK_DIR" -ForegroundColor Cyan
 }
 
 function Get-PixelDevice {
@@ -84,28 +77,6 @@ if ($Clean) {
     & $FLUTTER pub get
 }
 
-# -- Redirect build output via local.properties ------------------------------
-$localProps = "android\local.properties"
-$buildDirForward = $BUILD_DIR -replace '\\', '/'
-
-# Read existing local.properties and update/add flutter.buildDir
-$lines = @()
-$found = $false
-if (Test-Path $localProps) {
-    foreach ($line in Get-Content $localProps) {
-        if ($line -match "^flutter\.buildMode=") {
-            $lines += $line
-        } elseif ($line -match "^build\.dir=") {
-            $lines += "build.dir=$buildDirForward"
-            $found = $true
-        } else {
-            $lines += $line
-        }
-    }
-}
-if (-not $found) { $lines += "build.dir=$buildDirForward" }
-$lines | Set-Content $localProps
-
 # -- Deploy ------------------------------------------------------------------
 if ($Release) {
     Write-Host "Building RELEASE and deploying to $deviceId..." -ForegroundColor Cyan
@@ -115,4 +86,19 @@ if ($Release) {
     Write-Host "Deploying DEBUG build to $deviceId..." -ForegroundColor Cyan
     Write-Host "Hot reload: r | Hot restart: R | Quit: q" -ForegroundColor Yellow
     & $FLUTTER run -d $deviceId
+}
+
+# -- Copy outputs to network share if requested (default) --------------------
+if (-not $Local) {
+    Write-Host "Copying built APKs to network share..." -ForegroundColor Cyan
+    if (-not (Test-Path $NETWORK_DIR)) {
+        New-Item -ItemType Directory -Path $NETWORK_DIR -Force | Out-Null
+    }
+    $apkPath = "build\app\outputs\flutter-apk"
+    if (Test-Path $apkPath) {
+        Copy-Item -Path "$apkPath\*" -Destination $NETWORK_DIR -Recurse -Force
+        Write-Host "Successfully copied built APKs to $NETWORK_DIR" -ForegroundColor Green
+    } else {
+        Write-Host "No built APKs found at $apkPath to copy." -ForegroundColor Yellow
+    }
 }
