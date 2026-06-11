@@ -77,11 +77,23 @@ class WorkoutRoutines {
     ],
   );
 
+  static const WorkoutDefinition workoutC = WorkoutDefinition(
+    title: 'Legs & Glutes',
+    exercises: [
+      ExerciseDefinition(id: 'goblet_squat', name: 'Goblet Squat', focus: 'Quads & Glutes', restSeconds: 60),
+      ExerciseDefinition(id: 'romanian_deadlift', name: 'Romanian Deadlift', focus: 'Hamstrings & Glutes', restSeconds: 60),
+      ExerciseDefinition(id: 'split_squat', name: 'Bulgarian Split Squat', focus: 'Quads & Glutes', restSeconds: 45),
+      ExerciseDefinition(id: 'calf_raise', name: 'Standing Calf Raise', focus: 'Calves', restSeconds: 45),
+    ],
+  );
+
   static WorkoutDefinition getById(String id) {
-    if (id == 'Workout A' || id == 'A' || id == 'Chest & Arms') {
+    if (id == 'Workout A' || id == 'A' || id == 'Chest & Arms' || id == 'chest_arms') {
       return workoutA;
-    } else {
+    } else if (id == 'Workout B' || id == 'B' || id == 'Shoulders & Upper Back' || id == 'shoulders_back') {
       return workoutB;
+    } else {
+      return workoutC;
     }
   }
 }

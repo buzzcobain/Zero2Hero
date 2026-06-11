@@ -10,10 +10,13 @@ class OnboardingView extends StatefulWidget {
 }
 
 class _OnboardingViewState extends State<OnboardingView> {
+  final _nameController = TextEditingController();
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
   final _vestWeightController = TextEditingController(text: '20.0');
   bool _useWeightVest = false;
+  bool _isMetric = true;
+  List<String> _selectedRoutines = ['chest_arms', 'shoulders_back', 'legs'];
 
   final Map<String, TextEditingController> _exerciseControllers = {
     'floor_press': TextEditingController(text: '8.0'),
@@ -24,10 +27,15 @@ class _OnboardingViewState extends State<OnboardingView> {
     'upright_row': TextEditingController(text: '8.0'),
     'shrug': TextEditingController(text: '8.0'),
     'rear_flye': TextEditingController(text: '8.0'),
+    'goblet_squat': TextEditingController(text: '8.0'),
+    'romanian_deadlift': TextEditingController(text: '8.0'),
+    'split_squat': TextEditingController(text: '8.0'),
+    'calf_raise': TextEditingController(text: '8.0'),
   };
 
   @override
   void dispose() {
+    _nameController.dispose();
     _heightController.dispose();
     _weightController.dispose();
     _vestWeightController.dispose();
@@ -89,6 +97,35 @@ class _OnboardingViewState extends State<OnboardingView> {
                     _buildCard(
                       child: Column(
                         children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text('Unit System', style: TextStyle(color: Colors.white, fontSize: 16)),
+                              Row(
+                                children: [
+                                  Text('lbs', style: TextStyle(color: !_isMetric ? const Color(0xFF00E5FF) : Colors.white54)),
+                                  Switch(
+                                    value: _isMetric,
+                                    onChanged: (val) {
+                                      setState(() {
+                                        _isMetric = val;
+                                      });
+                                    },
+                                    activeColor: const Color(0xFF00E5FF),
+                                  ),
+                                  Text('kg', style: TextStyle(color: _isMetric ? const Color(0xFF00E5FF) : Colors.white54)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _buildTextField(
+                            controller: _nameController,
+                            label: 'Name',
+                            icon: Icons.person,
+                            keyboardType: TextInputType.name,
+                          ),
+                          const SizedBox(height: 16),
                           _buildTextField(
                             controller: _heightController,
                             label: 'Height (cm)',
@@ -99,10 +136,11 @@ class _OnboardingViewState extends State<OnboardingView> {
                           const SizedBox(height: 16),
                           _buildTextField(
                             controller: _weightController,
-                            label: 'Current Weight (kg)',
+                            label: 'Current Weight',
                             icon: Icons.scale,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             errorText: state.weightError,
+                            suffixText: _isMetric ? 'kg' : 'lbs',
                           ),
                           const SizedBox(height: 16),
                           Row(
@@ -133,10 +171,11 @@ class _OnboardingViewState extends State<OnboardingView> {
                             const SizedBox(height: 16),
                             _buildTextField(
                               controller: _vestWeightController,
-                              label: 'Weight Vest Weight (kg)',
+                              label: 'Weight Vest Weight',
                               icon: Icons.add_moderator,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               errorText: state.vestWeightError,
+                              suffixText: _isMetric ? 'kg' : 'lbs',
                             ),
                           ],
                         ],
@@ -145,20 +184,50 @@ class _OnboardingViewState extends State<OnboardingView> {
 
                     const SizedBox(height: 28),
 
+                    // Target Muscle Groups Card
+                    _buildSectionHeader('2. TARGET MUSCLE GROUPS'),
+                    const SizedBox(height: 12),
+                    if (state.routineError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8.0),
+                        child: Text(state.routineError!, style: const TextStyle(color: Colors.redAccent, fontSize: 13)),
+                      ),
+                    _buildCard(
+                      child: Column(
+                        children: [
+                          _buildRoutineCheckbox('chest_arms', 'Chest & Arms'),
+                          _buildRoutineCheckbox('shoulders_back', 'Shoulders & Upper Back'),
+                          _buildRoutineCheckbox('legs', 'Legs & Glutes'),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 28),
+
                     // Exercise Starting Weights Card
-                    _buildSectionHeader('2. STARTING EXERCISE WEIGHTS'),
+                    _buildSectionHeader('3. STARTING EXERCISE WEIGHTS'),
                     const SizedBox(height: 12),
                     _buildCard(
                       child: Column(
                         children: [
-                          _buildWeightInputRow('floor_press', 'Dumbbell Floor Press', state),
-                          _buildWeightInputRow('supinating_curl', 'Supinating Bicep Curl', state),
-                          _buildWeightInputRow('cross_hammer', 'Cross-Body Hammer Curl', state),
-                          _buildWeightInputRow('chair_kickback', 'Dining Chair Kickback', state),
-                          _buildWeightInputRow('military_press', 'Standing Military Press', state),
-                          _buildWeightInputRow('upright_row', 'Dumbbell Upright Row', state),
-                          _buildWeightInputRow('shrug', 'Dumbbell Shrug', state),
-                          _buildWeightInputRow('rear_flye', 'Bent-Over Rear Delt Flye', state),
+                          if (_selectedRoutines.contains('chest_arms')) ...[
+                            _buildWeightInputRow('floor_press', 'Dumbbell Floor Press', state),
+                            _buildWeightInputRow('supinating_curl', 'Supinating Bicep Curl', state),
+                            _buildWeightInputRow('cross_hammer', 'Cross-Body Hammer Curl', state),
+                            _buildWeightInputRow('chair_kickback', 'Dining Chair Kickback', state),
+                          ],
+                          if (_selectedRoutines.contains('shoulders_back')) ...[
+                            _buildWeightInputRow('military_press', 'Standing Military Press', state),
+                            _buildWeightInputRow('upright_row', 'Dumbbell Upright Row', state),
+                            _buildWeightInputRow('shrug', 'Dumbbell Shrug', state),
+                            _buildWeightInputRow('rear_flye', 'Bent-Over Rear Delt Flye', state),
+                          ],
+                          if (_selectedRoutines.contains('legs')) ...[
+                            _buildWeightInputRow('goblet_squat', 'Goblet Squat', state),
+                            _buildWeightInputRow('romanian_deadlift', 'Romanian Deadlift', state),
+                            _buildWeightInputRow('split_squat', 'Bulgarian Split Squat', state),
+                            _buildWeightInputRow('calf_raise', 'Standing Calf Raise', state),
+                          ],
                         ],
                       ),
                     ),
@@ -177,11 +246,14 @@ class _OnboardingViewState extends State<OnboardingView> {
                           });
 
                           context.read<OnboardingCubit>().saveProfile(
+                            nameStr: _nameController.text,
                             heightStr: _heightController.text,
                             weightStr: _weightController.text,
                             useWeightVest: _useWeightVest,
                             vestWeightStr: _vestWeightController.text,
                             exerciseStartingWeights: startingWeights,
+                            useMetricSystem: _isMetric,
+                            selectedRoutines: _selectedRoutines,
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -257,6 +329,7 @@ class _OnboardingViewState extends State<OnboardingView> {
     required IconData icon,
     required TextInputType keyboardType,
     String? errorText,
+    String? suffixText,
   }) {
     return TextField(
       controller: controller,
@@ -266,6 +339,8 @@ class _OnboardingViewState extends State<OnboardingView> {
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white54),
         prefixIcon: Icon(icon, color: const Color(0xFF00E5FF)),
+        suffixText: suffixText,
+        suffixStyle: const TextStyle(color: Colors.white38),
         errorText: errorText,
         errorStyle: const TextStyle(color: Colors.redAccent),
         enabledBorder: OutlineInputBorder(
@@ -309,7 +384,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                 style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
                 decoration: InputDecoration(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  errorText: error != null ? '' : null, // Show red border but omit text to fit height
+                  errorText: error != null ? '' : null,
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.white10),
@@ -320,7 +395,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                   ),
                   filled: true,
                   fillColor: const Color(0xFF0F172A),
-                  suffixText: 'kg',
+                  suffixText: _isMetric ? 'kg' : 'lbs',
                   suffixStyle: const TextStyle(color: Colors.white38, fontSize: 12),
                 ),
               ),
@@ -328,6 +403,27 @@ class _OnboardingViewState extends State<OnboardingView> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildRoutineCheckbox(String id, String label) {
+    final isSelected = _selectedRoutines.contains(id);
+    return CheckboxListTile(
+      title: Text(label, style: const TextStyle(color: Colors.white, fontSize: 14)),
+      value: isSelected,
+      activeColor: const Color(0xFF00E5FF),
+      checkColor: const Color(0xFF0F172A),
+      contentPadding: EdgeInsets.zero,
+      controlAffinity: ListTileControlAffinity.leading,
+      onChanged: (bool? value) {
+        setState(() {
+          if (value == true) {
+            _selectedRoutines.add(id);
+          } else {
+            _selectedRoutines.remove(id);
+          }
+        });
+      },
     );
   }
 }

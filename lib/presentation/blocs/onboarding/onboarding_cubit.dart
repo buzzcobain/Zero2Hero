@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../data/models/user_profile.dart';
 import '../../../data/repositories/profile_repository.dart';
+import '../../../utils/weight_converter.dart';
 
 class OnboardingState {
   final bool isCheckingProfile;
@@ -9,6 +10,7 @@ class OnboardingState {
   final String? heightError;
   final String? weightError;
   final String? vestWeightError;
+  final String? routineError;
   final Map<String, String?> exerciseErrors;
   final bool isSuccess;
 
@@ -19,6 +21,7 @@ class OnboardingState {
     this.heightError,
     this.weightError,
     this.vestWeightError,
+    this.routineError,
     this.exerciseErrors = const {},
     this.isSuccess = false,
   });
@@ -30,6 +33,7 @@ class OnboardingState {
     String? heightError,
     String? weightError,
     String? vestWeightError,
+    String? routineError,
     Map<String, String?>? exerciseErrors,
     bool? isSuccess,
   }) {
@@ -40,6 +44,7 @@ class OnboardingState {
       heightError: heightError ?? this.heightError,
       weightError: weightError ?? this.weightError,
       vestWeightError: vestWeightError ?? this.vestWeightError,
+      routineError: routineError ?? this.routineError,
       exerciseErrors: exerciseErrors ?? this.exerciseErrors,
       isSuccess: isSuccess ?? this.isSuccess,
     );
@@ -58,13 +63,16 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   }
 
   Future<void> saveProfile({
+    required String nameStr,
     required String heightStr,
     required String weightStr,
     required bool useWeightVest,
     required String vestWeightStr,
     required Map<String, String> exerciseStartingWeights,
+    required bool useMetricSystem,
+    required List<String> selectedRoutines,
   }) async {
-    emit(state.copyWith(isLoading: true, heightError: null, weightError: null, vestWeightError: null, exerciseErrors: {}));
+    emit(state.copyWith(isLoading: true, heightError: null, weightError: null, vestWeightError: null, routineError: null, exerciseErrors: {}));
 
     final numRegex = RegExp(r'^\d+(\.\d+)?$');
     final intRegex = RegExp(r'^\d+$');
@@ -98,6 +106,11 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       }
     }
 
+    String? routineErr;
+    if (selectedRoutines.isEmpty) {
+      routineErr = 'Please select at least one routine.';
+    }
+
     final exerciseErrors = <String, String?>{};
     for (var entry in exerciseStartingWeights.entries) {
       final key = entry.key;
@@ -111,33 +124,41 @@ class OnboardingCubit extends Cubit<OnboardingState> {
       }
     }
 
-    if (heightErr != null || weightErr != null || vestWeightErr != null || exerciseErrors.values.any((e) => e != null)) {
+    if (heightErr != null || weightErr != null || vestWeightErr != null || routineErr != null || exerciseErrors.values.any((e) => e != null)) {
       emit(state.copyWith(
         isLoading: false,
         heightError: heightErr,
         weightError: weightErr,
         vestWeightError: vestWeightErr,
+        routineError: routineErr,
         exerciseErrors: exerciseErrors,
       ));
       return;
     }
 
     final profile = UserProfile(
+      name: nameStr.trim().isNotEmpty ? nameStr.trim() : 'User',
       heightCm: int.parse(heightStr),
-      currentWeightKg: double.parse(weightStr),
+      currentWeightKg: WeightConverter.displayToKg(double.parse(weightStr), useMetricSystem),
       useWeightVest: useWeightVest,
-      weightVestKg: useWeightVest ? double.parse(vestWeightStr) : 0.0,
+      weightVestKg: useWeightVest ? WeightConverter.displayToKg(double.parse(vestWeightStr), useMetricSystem) : 0.0,
+      useMetricSystem: useMetricSystem,
+      selectedRoutines: selectedRoutines,
     );
 
     final weights = ExerciseWeights(
-      floorPress: double.parse(exerciseStartingWeights['floor_press']!),
-      militaryPress: double.parse(exerciseStartingWeights['military_press']!),
-      supinatingCurl: double.parse(exerciseStartingWeights['supinating_curl']!),
-      crossHammer: double.parse(exerciseStartingWeights['cross_hammer']!),
-      chairKickback: double.parse(exerciseStartingWeights['chair_kickback']!),
-      uprightRow: double.parse(exerciseStartingWeights['upright_row']!),
-      shrug: double.parse(exerciseStartingWeights['shrug']!),
-      rearFlye: double.parse(exerciseStartingWeights['rear_flye']!),
+      floorPress: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['floor_press'] ?? '8.0'), useMetricSystem),
+      militaryPress: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['military_press'] ?? '8.0'), useMetricSystem),
+      supinatingCurl: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['supinating_curl'] ?? '8.0'), useMetricSystem),
+      crossHammer: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['cross_hammer'] ?? '8.0'), useMetricSystem),
+      chairKickback: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['chair_kickback'] ?? '8.0'), useMetricSystem),
+      uprightRow: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['upright_row'] ?? '8.0'), useMetricSystem),
+      shrug: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['shrug'] ?? '8.0'), useMetricSystem),
+      rearFlye: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['rear_flye'] ?? '8.0'), useMetricSystem),
+      gobletSquat: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['goblet_squat'] ?? '8.0'), useMetricSystem),
+      romanianDeadlift: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['romanian_deadlift'] ?? '8.0'), useMetricSystem),
+      splitSquat: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['split_squat'] ?? '8.0'), useMetricSystem),
+      calfRaise: WeightConverter.displayToKg(double.parse(exerciseStartingWeights['calf_raise'] ?? '8.0'), useMetricSystem),
     );
 
     final userData = UserData(profile: profile, weights: weights);

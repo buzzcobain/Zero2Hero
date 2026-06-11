@@ -49,3 +49,6 @@ DerivedData/
 /user_profile.json
 /progress_photos/
 /coverage/
+
+# Exercise DB Clone
+free-exercise-db/

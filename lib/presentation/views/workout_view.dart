@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/workout/workout_cubit.dart';
+import '../../utils/weight_converter.dart';
 import 'rest_timer_view.dart';
 import 'vault_view.dart';
 
@@ -66,6 +67,7 @@ class WorkoutView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
               itemCount: workout.exercises.length,
               itemBuilder: (context, index) {
+                final isMetric = state.userData?.profile.useMetricSystem ?? true;
                 final exercise = workout.exercises[index];
                 final target = state.targets[exercise.id];
                 final setsCompleted = state.completedSets[exercise.id] ?? [false, false, false];
@@ -82,8 +84,78 @@ class WorkoutView extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          GestureDetector(
+                            onTap: () {
+                              showDialog(
+                                context: context,
+                                builder: (context) => Dialog(
+                                  backgroundColor: Colors.transparent,
+                                  insetPadding: const EdgeInsets.all(16),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(16),
+                                        child: Image.asset(
+                                          'assets/images/exercises/${exercise.id}.gif',
+                                          fit: BoxFit.contain,
+                                        ),
+                                      ),
+                                      Positioned(
+                                        top: 10,
+                                        right: 10,
+                                        child: IconButton(
+                                          icon: const Icon(Icons.close, color: Colors.white, size: 32),
+                                          onPressed: () => Navigator.of(context).pop(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.5), width: 2),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF00E5FF).withOpacity(0.2),
+                                    blurRadius: 8,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
+                              ),
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.asset(
+                                      'assets/images/exercises/${exercise.id}.gif',
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        color: Colors.white10,
+                                        child: const Icon(Icons.fitness_center, color: Colors.white24),
+                                      ),
+                                    ),
+                                  ),
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.black45,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(Icons.play_circle_fill, color: Colors.white, size: 32),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 16),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,7 +179,7 @@ class WorkoutView extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
-                              target != null ? '${target.weightKg} kg' : '8.0 kg',
+                              target != null ? WeightConverter.format(target.weightKg, isMetric) : WeightConverter.format(8.0, isMetric),
                               style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 13),
                             ),
                           ),

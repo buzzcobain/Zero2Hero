@@ -42,4 +42,15 @@ class ProfileRepository {
     final jsonString = jsonEncode(data.toJson());
     await file.writeAsString(jsonString);
   }
+
+  Future<void> clearProfile() async {
+    try {
+      final file = await _localFile;
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } catch (e) {
+      // Ignore
+    }
+  }
 }

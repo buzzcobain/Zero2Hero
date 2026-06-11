@@ -6,6 +6,11 @@ import '../blocs/workout/workout_cubit.dart';
 import '../blocs/timelapse/timelapse_cubit.dart';
 import 'workout_view.dart';
 import 'vault_view.dart';
+import '../../utils/weight_converter.dart';
+import 'settings_view.dart';
+import 'update_profile_view.dart';
+import 'update_weights_view.dart';
+import 'workout_history_view.dart';
 
 class DashboardView extends StatefulWidget {
   const DashboardView({super.key});
@@ -57,6 +62,7 @@ class _DashboardViewState extends State<DashboardView> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0B0F19),
+      drawer: _buildDrawer(context),
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -70,7 +76,7 @@ class _DashboardViewState extends State<DashboardView> {
             builder: (context, workoutState) {
               return Column(
                 children: [
-                  _buildHeader(workoutState),
+                  _buildHeader(context, workoutState),
                   Expanded(
                     child: _activeTab == 0
                         ? _buildWorkoutTab(workoutState)
@@ -86,50 +92,123 @@ class _DashboardViewState extends State<DashboardView> {
     );
   }
 
-  Widget _buildHeader(WorkoutState workoutState) {
+  Widget _buildHeader(BuildContext context, WorkoutState workoutState) {
+    final isMetric = workoutState.userData?.profile.useMetricSystem ?? true;
+    final profileWeight = workoutState.userData?.profile.currentWeightKg ?? 70.0;
+    
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.only(left: 16, right: 24, top: 24, bottom: 24),
       decoration: const BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.white10)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
             children: [
-              const Text(
-                'WELCOME BACK',
-                style: TextStyle(color: Colors.white54, fontSize: 11, letterSpacing: 1.5, fontWeight: FontWeight.bold),
+              IconButton(
+                icon: const Icon(Icons.menu, color: Colors.white),
+                onPressed: () {
+                  Scaffold.of(context).openDrawer();
+                },
               ),
-              const SizedBox(height: 4),
-              Text(
-                workoutState.userData != null
-                    ? '${workoutState.userData!.profile.currentWeightKg} kg Profile'
-                    : 'Fitness Tracker',
-                style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              const SizedBox(width: 8),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'WELCOME BACK, ${workoutState.userData?.profile.name.toUpperCase() ?? 'USER'}',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+                  ),
+                ],
               ),
             ],
           ),
           if (workoutState.userData?.profile.useWeightVest ?? false)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: const Color(0xFF7C4DFF).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.4)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7C4DFF).withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF7C4DFF).withOpacity(0.4)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.shield, color: Color(0xFF00E5FF), size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Vest: ${WeightConverter.format(workoutState.userData!.profile.weightVestKg, isMetric)}',
+                      style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.shield, color: Color(0xFF00E5FF), size: 14),
-                  const SizedBox(width: 4),
-                  Text(
-                    'Vest: ${workoutState.userData!.profile.weightVestKg}kg',
-                    style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                  ),
-                ],
-              ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: const Color(0xFF0F172A),
+      child: ListView(
+        padding: EdgeInsets.zero,
+        children: [
+          DrawerHeader(
+            decoration: const BoxDecoration(
+              color: Color(0xFF161F30),
             ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                ShaderMask(
+                  shaderCallback: (bounds) => const LinearGradient(
+                    colors: [Color(0xFF00E5FF), Color(0xFF7C4DFF)],
+                  ).createShader(bounds),
+                  child: const Text(
+                    'ZERO TO HERO',
+                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text('Menu Options', style: TextStyle(color: Colors.white54)),
+              ],
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.scale, color: Colors.white),
+            title: const Text('Update Body Weight', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const UpdateProfileView()));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.fitness_center, color: Colors.white),
+            title: const Text('Update Exercise Weights', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const UpdateWeightsView()));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.history, color: Colors.white),
+            title: const Text('Workout History', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const WorkoutHistoryView()));
+            },
+          ),
+          const Divider(color: Colors.white10),
+          ListTile(
+            leading: const Icon(Icons.settings, color: Colors.white),
+            title: const Text('Settings', style: TextStyle(color: Colors.white)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsView()));
+            },
+          ),
         ],
       ),
     );
@@ -139,6 +218,8 @@ class _DashboardViewState extends State<DashboardView> {
     if (workoutState.isLoading) {
       return const Center(child: CircularProgressIndicator(color: Color(0xFF00E5FF)));
     }
+
+    final isMetric = workoutState.userData?.profile.useMetricSystem ?? true;
 
     if (workoutState.isRestDay) {
       return Padding(
@@ -208,12 +289,12 @@ class _DashboardViewState extends State<DashboardView> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24.0),
+      padding: const EdgeInsets.all(16.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
@@ -224,36 +305,51 @@ class _DashboardViewState extends State<DashboardView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF00E5FF).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'TODAY\'S WORKOUT',
-                    style: TextStyle(color: Color(0xFF00E5FF), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E5FF).withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'TODAY\'S WORKOUT',
+                        style: TextStyle(color: Color(0xFF00E5FF), fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1),
+                      ),
+                    ),
+                    if (workoutState.availableRoutines.length > 1)
+                      IconButton(
+                        icon: const Icon(Icons.swap_horiz, color: Color(0xFF00E5FF)),
+                        tooltip: 'Cycle Routine',
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () {
+                          context.read<WorkoutCubit>().cycleRoutine();
+                        },
+                      ),
+                  ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 6),
                 Text(
                   workout.title,
-                  style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900),
+                  style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 4),
                 Text(
                   '${workout.exercises.length} Exercises targeting key muscle groups.',
-                  style: const TextStyle(color: Colors.white60, fontSize: 14),
+                  style: const TextStyle(color: Colors.white60, fontSize: 12),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           const Text(
             'EXERCISES LIST',
-            style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 1.5),
+            style: TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 11, letterSpacing: 1.5),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -262,8 +358,8 @@ class _DashboardViewState extends State<DashboardView> {
               final exercise = workout.exercises[index];
               final target = workoutState.targets[exercise.id];
               return Container(
-                margin: const EdgeInsets.only(bottom: 12),
-                padding: const EdgeInsets.all(16),
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF161F30),
                   borderRadius: BorderRadius.circular(12),
@@ -272,8 +368,8 @@ class _DashboardViewState extends State<DashboardView> {
                 child: Row(
                   children: [
                     Container(
-                      width: 42,
-                      height: 42,
+                      width: 36,
+                      height: 36,
                       decoration: BoxDecoration(
                         color: const Color(0xFF7C4DFF).withOpacity(0.2),
                         borderRadius: BorderRadius.circular(8),
@@ -305,7 +401,7 @@ class _DashboardViewState extends State<DashboardView> {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          target != null ? '${target.weightKg} kg' : '8.0 kg',
+                          target != null ? WeightConverter.format(target.weightKg, isMetric) : WeightConverter.format(8.0, isMetric),
                           style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         const SizedBox(height: 4),
@@ -320,7 +416,7 @@ class _DashboardViewState extends State<DashboardView> {
               );
             },
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           ElevatedButton(
             onPressed: () {
               context.read<WorkoutCubit>().startWorkout();
@@ -329,7 +425,7 @@ class _DashboardViewState extends State<DashboardView> {
               );
             },
             style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 18),
+              padding: const EdgeInsets.symmetric(vertical: 12),
               backgroundColor: Colors.transparent,
               shadowColor: Colors.transparent,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -350,22 +446,22 @@ class _DashboardViewState extends State<DashboardView> {
               ),
               child: Container(
                 alignment: Alignment.center,
-                constraints: const BoxConstraints(minHeight: 56),
+                constraints: const BoxConstraints(minHeight: 48),
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(Icons.play_arrow, color: Colors.white),
                     SizedBox(width: 8),
                     Text(
-                      'START TRAINING SESSION',
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1.2),
+                      'START TRAINING',
+                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 14, letterSpacing: 1.2),
                     ),
                   ],
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 40),
+          const SizedBox(height: 16),
         ],
       ),
     );

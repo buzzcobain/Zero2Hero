@@ -24,6 +24,7 @@ class WorkoutState {
   final bool isWorkoutFinished;
   final bool triggerCameraVault;
   final UserData? userData;
+  final List<WorkoutDefinition> availableRoutines;
 
   const WorkoutState({
     this.isLoading = false,
@@ -40,6 +41,7 @@ class WorkoutState {
     this.isWorkoutFinished = false,
     this.triggerCameraVault = false,
     this.userData,
+    this.availableRoutines = const [],
   });
 
   WorkoutState copyWith({
@@ -57,6 +59,7 @@ class WorkoutState {
     bool? isWorkoutFinished,
     bool? triggerCameraVault,
     UserData? userData,
+    List<WorkoutDefinition>? availableRoutines,
   }) {
     return WorkoutState(
       isLoading: isLoading ?? this.isLoading,
@@ -73,6 +76,7 @@ class WorkoutState {
       isWorkoutFinished: isWorkoutFinished ?? this.isWorkoutFinished,
       triggerCameraVault: triggerCameraVault ?? this.triggerCameraVault,
       userData: userData ?? this.userData,
+      availableRoutines: availableRoutines ?? this.availableRoutines,
     );
   }
 }
@@ -113,14 +117,23 @@ class WorkoutCubit extends Cubit<WorkoutState> {
     else if (weekday == 4) nextDay = 'Friday';
     else nextDay = 'Monday';
 
-    // 2. Select Routine (alternating)
-    WorkoutDefinition selectedRoutine = WorkoutRoutines.workoutA;
+    // 2. Select Routine (alternating based on user's selected routines)
+    List<String> selectedRoutineIds = profileData?.profile.selectedRoutines ?? ['chest_arms', 'shoulders_back', 'legs'];
+    if (selectedRoutineIds.isEmpty) {
+      selectedRoutineIds = ['chest_arms']; // fallback
+    }
+
+    final availableRoutines = selectedRoutineIds.map((id) => WorkoutRoutines.getById(id)).toList();
+    
+    WorkoutDefinition selectedRoutine = availableRoutines.first;
     if (logs.isNotEmpty) {
       final lastLog = logs.last;
-      if (lastLog.workoutType == WorkoutRoutines.workoutA.title) {
-        selectedRoutine = WorkoutRoutines.workoutB;
+      final lastRoutineIndex = availableRoutines.indexWhere((r) => r.title == lastLog.workoutType);
+      if (lastRoutineIndex != -1) {
+        final nextIndex = (lastRoutineIndex + 1) % availableRoutines.length;
+        selectedRoutine = availableRoutines[nextIndex];
       } else {
-        selectedRoutine = WorkoutRoutines.workoutA;
+        selectedRoutine = availableRoutines.first;
       }
     }
 
@@ -153,6 +166,38 @@ class WorkoutCubit extends Cubit<WorkoutState> {
       completedSets: completedSets,
       targets: targets,
       userData: profileData,
+      availableRoutines: availableRoutines,
+    ));
+  }
+
+  void cycleRoutine() {
+    if (state.availableRoutines.isEmpty || state.activeWorkout == null) return;
+    final currentIndex = state.availableRoutines.indexWhere((r) => r.title == state.activeWorkout!.title);
+    if (currentIndex == -1) return;
+    
+    final nextIndex = (currentIndex + 1) % state.availableRoutines.length;
+    final selectedRoutine = state.availableRoutines[nextIndex];
+
+    // Recompute targets and sets for the new routine
+    final targets = <String, SessionTarget>{};
+    if (state.userData != null) {
+      for (var exercise in selectedRoutine.exercises) {
+        final initialWeight = state.userData!.weights.getWeightForExercise(exercise.id);
+        // Note: For simplicity we aren't reloading history here, but we can assume we just use the initial weight
+        // or a simple target. Ideally we pass the history from initSession. We'll use the profile weight.
+        targets[exercise.id] = SessionTarget(stage: RoadmapStage.stage1, weightKg: initialWeight, targetReps: 10);
+      }
+    }
+
+    final completedSets = <String, List<bool>>{};
+    for (var exercise in selectedRoutine.exercises) {
+      completedSets[exercise.id] = [false, false, false];
+    }
+
+    emit(state.copyWith(
+      activeWorkout: selectedRoutine,
+      targets: targets,
+      completedSets: completedSets,
     ));
   }
 
@@ -301,6 +346,62 @@ class WorkoutCubit extends Cubit<WorkoutState> {
         triggerCameraVault: isFriday,
       ));
     });
+  }
+
+  Future<void> toggleMetricSystem(bool useMetric) async {
+    if (state.userData != null) {
+      final updatedProfile = state.userData!.profile.copyWith(useMetricSystem: useMetric);
+      final updatedData = UserData(profile: updatedProfile, weights: state.userData!.weights);
+      await _profileRepository.saveProfile(updatedData);
+      emit(state.copyWith(userData: updatedData));
+    }
+  }
+
+  Future<void> updateBodyProfile(double newWeightKg, bool useVest, double vestWeightKg) async {
+    if (state.userData != null) {
+      final updatedProfile = state.userData!.profile.copyWith(
+        currentWeightKg: newWeightKg,
+        useWeightVest: useVest,
+        weightVestKg: vestWeightKg,
+      );
+      final updatedData = UserData(profile: updatedProfile, weights: state.userData!.weights);
+      await _profileRepository.saveProfile(updatedData);
+      emit(state.copyWith(userData: updatedData));
+    }
+  }
+
+  Future<void> updateExerciseWeights(Map<String, double> newWeightsKg) async {
+    if (state.userData != null) {
+      var updatedWeights = state.userData!.weights;
+      newWeightsKg.forEach((key, value) {
+        updatedWeights = updatedWeights.copyWithExercise(key, value);
+      });
+      final updatedData = UserData(profile: state.userData!.profile, weights: updatedWeights);
+      await _profileRepository.saveProfile(updatedData);
+      
+      final newTargets = Map<String, SessionTarget>.from(state.targets);
+      for (var exerciseId in newWeightsKg.keys) {
+        if (newTargets.containsKey(exerciseId)) {
+          final oldTarget = newTargets[exerciseId]!;
+          newTargets[exerciseId] = SessionTarget(
+            stage: oldTarget.stage,
+            weightKg: newWeightsKg[exerciseId]!,
+            targetReps: oldTarget.targetReps,
+          );
+        }
+      }
+
+      emit(state.copyWith(userData: updatedData, targets: newTargets));
+    }
+  }
+
+  Future<void> updateSelectedRoutines(List<String> routines) async {
+    if (state.userData != null) {
+      final updatedProfile = state.userData!.profile.copyWith(selectedRoutines: routines);
+      final updatedData = UserData(profile: updatedProfile, weights: state.userData!.weights);
+      await _profileRepository.saveProfile(updatedData);
+      emit(state.copyWith(userData: updatedData));
+    }
   }
 
   void bypassRestDay() {
