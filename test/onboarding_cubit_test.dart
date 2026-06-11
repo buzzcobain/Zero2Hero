@@ -25,6 +25,10 @@ void main() {
           uprightRow: 8.0,
           shrug: 8.0,
           rearFlye: 8.0,
+          gobletSquat: 8.0,
+          romanianDeadlift: 8.0,
+          splitSquat: 8.0,
+          calfRaise: 8.0,
         ),
       ),
     );
@@ -46,10 +50,22 @@ void main() {
 
     test('saveProfile validates invalid inputs and sets errors', () async {
       await onboardingCubit.saveProfile(
+        nameStr: 'Test',
         heightStr: '',
+        heightFtStr: '',
+        heightInStr: '',
         weightStr: 'abc',
+        weightStStr: '',
+        weightLbsStr: '',
         useWeightVest: true,
         vestWeightStr: '-5.0',
+        vestWeightStStr: '',
+        vestWeightLbsStr: '',
+        useMetricSystem: true,
+        selectedRoutines: ['chest_arms'],
+        workoutSchedule: {},
+        enableNotifications: false,
+        notificationOffsetMinutes: 10,
         exerciseStartingWeights: {
           'floor_press': '',
           'military_press': 'invalid',
@@ -59,6 +75,10 @@ void main() {
           'upright_row': '8.0',
           'shrug': '8.0',
           'rear_flye': '8.0',
+          'goblet_squat': '8.0',
+          'romanian_deadlift': '8.0',
+          'split_squat': '8.0',
+          'calf_raise': '8.0',
         },
       );
 
@@ -76,10 +96,22 @@ void main() {
       when(() => mockProfileRepository.saveProfile(any())).thenAnswer((_) async => {});
 
       await onboardingCubit.saveProfile(
+        nameStr: 'Test',
         heightStr: '180',
+        heightFtStr: '',
+        heightInStr: '',
         weightStr: '82.5',
+        weightStStr: '',
+        weightLbsStr: '',
         useWeightVest: true,
         vestWeightStr: '10.0',
+        vestWeightStStr: '',
+        vestWeightLbsStr: '',
+        useMetricSystem: true,
+        selectedRoutines: ['chest_arms'],
+        workoutSchedule: {},
+        enableNotifications: false,
+        notificationOffsetMinutes: 10,
         exerciseStartingWeights: {
           'floor_press': '12.0',
           'military_press': '8.0',
@@ -89,6 +121,10 @@ void main() {
           'upright_row': '8.0',
           'shrug': '8.0',
           'rear_flye': '8.0',
+          'goblet_squat': '8.0',
+          'romanian_deadlift': '8.0',
+          'split_squat': '8.0',
+          'calf_raise': '8.0',
         },
       );
 

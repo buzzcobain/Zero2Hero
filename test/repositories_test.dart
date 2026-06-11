@@ -42,8 +42,12 @@ void main() {
         crossHammer: 8.0,
         chairKickback: 6.0,
         uprightRow: 8.0,
-        shrug: 12.0,
-        rearFlye: 6.0,
+        shrug: 8.0,
+        rearFlye: 8.0,
+        gobletSquat: 8.0,
+        romanianDeadlift: 8.0,
+        splitSquat: 8.0,
+        calfRaise: 8.0,
       );
       final userData = UserData(profile: profile, weights: weights);
 

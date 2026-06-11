@@ -60,6 +60,10 @@ void main() {
         uprightRow: 8.0,
         shrug: 8.0,
         rearFlye: 8.0,
+        gobletSquat: 8.0,
+        romanianDeadlift: 8.0,
+        splitSquat: 8.0,
+        calfRaise: 8.0,
       );
 
       // Verify all getWeightForExercise cases

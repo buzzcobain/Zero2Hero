@@ -65,12 +65,21 @@ class OnboardingCubit extends Cubit<OnboardingState> {
   Future<void> saveProfile({
     required String nameStr,
     required String heightStr,
+    required String heightFtStr,
+    required String heightInStr,
     required String weightStr,
+    required String weightStStr,
+    required String weightLbsStr,
     required bool useWeightVest,
     required String vestWeightStr,
+    required String vestWeightStStr,
+    required String vestWeightLbsStr,
     required Map<String, String> exerciseStartingWeights,
     required bool useMetricSystem,
     required List<String> selectedRoutines,
+    required Map<String, String> workoutSchedule,
+    required bool enableNotifications,
+    required int notificationOffsetMinutes,
   }) async {
     emit(state.copyWith(isLoading: true, heightError: null, weightError: null, vestWeightError: null, routineError: null, exerciseErrors: {}));
 
@@ -78,31 +87,90 @@ class OnboardingCubit extends Cubit<OnboardingState> {
     final intRegex = RegExp(r'^\d+$');
 
     String? heightErr;
-    if (heightStr.trim().isEmpty) {
-      heightErr = 'Height is required';
-    } else if (!intRegex.hasMatch(heightStr)) {
-      heightErr = 'Must be a whole number';
-    } else if (int.parse(heightStr) <= 0) {
-      heightErr = 'Must be greater than 0';
+    int finalHeightCm = 0;
+    if (useMetricSystem) {
+      if (heightStr.trim().isEmpty) {
+        heightErr = 'Height is required';
+      } else if (!intRegex.hasMatch(heightStr)) {
+        heightErr = 'Must be a whole number';
+      } else if (int.parse(heightStr) <= 0) {
+        heightErr = 'Must be greater than 0';
+      } else {
+        finalHeightCm = int.parse(heightStr);
+      }
+    } else {
+      if (heightFtStr.trim().isEmpty || heightInStr.trim().isEmpty) {
+        heightErr = 'Both feet and inches are required';
+      } else if (!intRegex.hasMatch(heightFtStr) || !intRegex.hasMatch(heightInStr)) {
+        heightErr = 'Must be whole numbers';
+      } else {
+        int ft = int.parse(heightFtStr);
+        int inches = int.parse(heightInStr);
+        if (ft <= 0) {
+          heightErr = 'Feet must be greater than 0';
+        } else {
+          finalHeightCm = ((ft * 30.48) + (inches * 2.54)).round();
+        }
+      }
     }
 
     String? weightErr;
-    if (weightStr.trim().isEmpty) {
-      weightErr = 'Weight is required';
-    } else if (!numRegex.hasMatch(weightStr)) {
-      weightErr = 'Must be a valid number';
-    } else if (double.parse(weightStr) <= 0) {
-      weightErr = 'Must be greater than 0';
+    double finalWeightKg = 0;
+    if (useMetricSystem) {
+      if (weightStr.trim().isEmpty) {
+        weightErr = 'Weight is required';
+      } else if (!numRegex.hasMatch(weightStr)) {
+        weightErr = 'Must be a valid number';
+      } else if (double.parse(weightStr) <= 0) {
+        weightErr = 'Must be greater than 0';
+      } else {
+        finalWeightKg = double.parse(weightStr);
+      }
+    } else {
+      if (weightStStr.trim().isEmpty || weightLbsStr.trim().isEmpty) {
+        weightErr = 'Both stone and lbs are required';
+      } else if (!numRegex.hasMatch(weightStStr) || !numRegex.hasMatch(weightLbsStr)) {
+        weightErr = 'Must be valid numbers';
+      } else {
+        double st = double.parse(weightStStr);
+        double lbs = double.parse(weightLbsStr);
+        if (st < 0 || lbs < 0) {
+          weightErr = 'Must be positive';
+        } else {
+          double totalLbs = (st * 14) + lbs;
+          finalWeightKg = totalLbs * 0.453592;
+        }
+      }
     }
 
     String? vestWeightErr;
+    double finalVestWeightKg = 0;
     if (useWeightVest) {
-      if (vestWeightStr.trim().isEmpty) {
-        vestWeightErr = 'Vest weight is required';
-      } else if (!numRegex.hasMatch(vestWeightStr)) {
-        vestWeightErr = 'Must be a valid number';
-      } else if (double.parse(vestWeightStr) < 0) {
-        vestWeightErr = 'Must be 0 or positive';
+      if (useMetricSystem) {
+        if (vestWeightStr.trim().isEmpty) {
+          vestWeightErr = 'Vest weight is required';
+        } else if (!numRegex.hasMatch(vestWeightStr)) {
+          vestWeightErr = 'Must be a valid number';
+        } else if (double.parse(vestWeightStr) < 0) {
+          vestWeightErr = 'Must be 0 or positive';
+        } else {
+          finalVestWeightKg = double.parse(vestWeightStr);
+        }
+      } else {
+        if (vestWeightStStr.trim().isEmpty || vestWeightLbsStr.trim().isEmpty) {
+          vestWeightErr = 'Both stone and lbs are required';
+        } else if (!numRegex.hasMatch(vestWeightStStr) || !numRegex.hasMatch(vestWeightLbsStr)) {
+          vestWeightErr = 'Must be valid numbers';
+        } else {
+          double st = double.parse(vestWeightStStr);
+          double lbs = double.parse(vestWeightLbsStr);
+          if (st < 0 || lbs < 0) {
+            vestWeightErr = 'Must be positive';
+          } else {
+            double totalLbs = (st * 14) + lbs;
+            finalVestWeightKg = totalLbs * 0.453592;
+          }
+        }
       }
     }
 
@@ -138,12 +206,15 @@ class OnboardingCubit extends Cubit<OnboardingState> {
 
     final profile = UserProfile(
       name: nameStr.trim().isNotEmpty ? nameStr.trim() : 'User',
-      heightCm: int.parse(heightStr),
-      currentWeightKg: WeightConverter.displayToKg(double.parse(weightStr), useMetricSystem),
+      heightCm: finalHeightCm,
+      currentWeightKg: finalWeightKg,
       useWeightVest: useWeightVest,
-      weightVestKg: useWeightVest ? WeightConverter.displayToKg(double.parse(vestWeightStr), useMetricSystem) : 0.0,
+      weightVestKg: finalVestWeightKg,
       useMetricSystem: useMetricSystem,
       selectedRoutines: selectedRoutines,
+      workoutSchedule: workoutSchedule,
+      enableNotifications: enableNotifications,
+      notificationOffsetMinutes: notificationOffsetMinutes,
     );
 
     final weights = ExerciseWeights(

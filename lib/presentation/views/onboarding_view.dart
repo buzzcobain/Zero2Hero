@@ -14,9 +14,20 @@ class _OnboardingViewState extends State<OnboardingView> {
   final _heightController = TextEditingController();
   final _weightController = TextEditingController();
   final _vestWeightController = TextEditingController(text: '20.0');
+  final _heightFtController = TextEditingController();
+  final _heightInController = TextEditingController();
+  final _weightStController = TextEditingController();
+  final _weightLbsController = TextEditingController();
+  final _vestWeightStController = TextEditingController(text: '3');
+  final _vestWeightLbsController = TextEditingController(text: '2');
+  
   bool _useWeightVest = false;
   bool _isMetric = true;
   List<String> _selectedRoutines = ['chest_arms', 'shoulders_back', 'legs'];
+
+  Map<String, String> _schedule = {'1': '07:00', '3': '07:00', '5': '07:00'};
+  bool _enableNotifications = true;
+  int _notificationOffsetMinutes = 10;
 
   final Map<String, TextEditingController> _exerciseControllers = {
     'floor_press': TextEditingController(text: '8.0'),
@@ -38,6 +49,12 @@ class _OnboardingViewState extends State<OnboardingView> {
     _nameController.dispose();
     _heightController.dispose();
     _weightController.dispose();
+    _heightFtController.dispose();
+    _heightInController.dispose();
+    _weightStController.dispose();
+    _weightLbsController.dispose();
+    _vestWeightStController.dispose();
+    _vestWeightLbsController.dispose();
     _vestWeightController.dispose();
     for (var controller in _exerciseControllers.values) {
       controller.dispose();
@@ -126,22 +143,42 @@ class _OnboardingViewState extends State<OnboardingView> {
                             keyboardType: TextInputType.name,
                           ),
                           const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _heightController,
-                            label: 'Height (cm)',
-                            icon: Icons.height,
-                            keyboardType: TextInputType.number,
-                            errorText: state.heightError,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildTextField(
-                            controller: _weightController,
-                            label: 'Current Weight',
-                            icon: Icons.scale,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            errorText: state.weightError,
-                            suffixText: _isMetric ? 'kg' : 'lbs',
-                          ),
+                          if (_isMetric) ...[
+                            _buildTextField(
+                              controller: _heightController,
+                              label: 'Height (cm)',
+                              icon: Icons.height,
+                              keyboardType: TextInputType.number,
+                              errorText: state.heightError,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildTextField(
+                              controller: _weightController,
+                              label: 'Current Weight',
+                              icon: Icons.scale,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              errorText: state.weightError,
+                              suffixText: 'kg',
+                            ),
+                          ] else ...[
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildTextField(controller: _heightFtController, label: 'Height (ft)', icon: Icons.height, keyboardType: TextInputType.number, errorText: state.heightError)),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildTextField(controller: _heightInController, label: 'Height (in)', icon: Icons.height, keyboardType: TextInputType.number, errorText: state.heightError == null ? null : '')),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: _buildTextField(controller: _weightStController, label: 'Weight (st)', icon: Icons.scale, keyboardType: const TextInputType.numberWithOptions(decimal: true), errorText: state.weightError)),
+                                const SizedBox(width: 16),
+                                Expanded(child: _buildTextField(controller: _weightLbsController, label: 'Weight (lbs)', icon: Icons.scale, keyboardType: const TextInputType.numberWithOptions(decimal: true), errorText: state.weightError == null ? null : '')),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -169,14 +206,24 @@ class _OnboardingViewState extends State<OnboardingView> {
                           ),
                           if (_useWeightVest) ...[
                             const SizedBox(height: 16),
-                            _buildTextField(
-                              controller: _vestWeightController,
-                              label: 'Weight Vest Weight',
-                              icon: Icons.add_moderator,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              errorText: state.vestWeightError,
-                              suffixText: _isMetric ? 'kg' : 'lbs',
-                            ),
+                            if (_isMetric)
+                              _buildTextField(
+                                controller: _vestWeightController,
+                                label: 'Weight Vest Weight',
+                                icon: Icons.add_moderator,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                errorText: state.vestWeightError,
+                                suffixText: 'kg',
+                              )
+                            else
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: _buildTextField(controller: _vestWeightStController, label: 'Vest (st)', icon: Icons.add_moderator, keyboardType: const TextInputType.numberWithOptions(decimal: true), errorText: state.vestWeightError)),
+                                  const SizedBox(width: 16),
+                                  Expanded(child: _buildTextField(controller: _vestWeightLbsController, label: 'Vest (lbs)', icon: Icons.add_moderator, keyboardType: const TextInputType.numberWithOptions(decimal: true), errorText: state.vestWeightError == null ? null : '')),
+                                ],
+                              ),
                           ],
                         ],
                       ),
@@ -232,6 +279,121 @@ class _OnboardingViewState extends State<OnboardingView> {
                       ),
                     ),
 
+                    const SizedBox(height: 28),
+
+                    // Workout Schedule Card
+                    _buildSectionHeader('4. WORKOUT SCHEDULE'),
+                    const SizedBox(height: 12),
+                    _buildCard(
+                      child: Column(
+                        children: [
+                          SwitchListTile(
+                            title: const Text('Enable Reminders', style: TextStyle(color: Colors.white)),
+                            subtitle: const Text('Receive notifications for workouts', style: TextStyle(color: Colors.white54)),
+                            value: _enableNotifications,
+                            activeColor: const Color(0xFF00E5FF),
+                            contentPadding: EdgeInsets.zero,
+                            onChanged: (val) {
+                              setState(() {
+                                _enableNotifications = val;
+                              });
+                            },
+                          ),
+                          if (_enableNotifications) ...[
+                            const Divider(color: Colors.white10, height: 1),
+                            ListTile(
+                              contentPadding: EdgeInsets.zero,
+                              title: const Text('Remind me before', style: TextStyle(color: Colors.white)),
+                              trailing: DropdownButton<int>(
+                                dropdownColor: const Color(0xFF161F30),
+                                value: _notificationOffsetMinutes,
+                                style: const TextStyle(color: Colors.white),
+                                underline: const SizedBox(),
+                                items: const [
+                                  DropdownMenuItem(value: 0, child: Text('At exact time')),
+                                  DropdownMenuItem(value: 5, child: Text('5 minutes')),
+                                  DropdownMenuItem(value: 10, child: Text('10 minutes')),
+                                  DropdownMenuItem(value: 15, child: Text('15 minutes')),
+                                  DropdownMenuItem(value: 30, child: Text('30 minutes')),
+                                  DropdownMenuItem(value: 60, child: Text('1 hour')),
+                                ],
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    setState(() {
+                                      _notificationOffsetMinutes = val;
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 16),
+                          ...List.generate(7, (index) {
+                            final dayInt = index + 1;
+                            final dayString = dayInt.toString();
+                            final isEnabled = _schedule.containsKey(dayString);
+                            final timeString = isEnabled ? _schedule[dayString]! : '07:00';
+                            
+                            return Column(
+                              children: [
+                                ListTile(
+                                  contentPadding: EdgeInsets.zero,
+                                  title: Text(_getWeekdayName(dayInt), style: TextStyle(color: isEnabled ? Colors.white : Colors.white54)),
+                                  leading: Checkbox(
+                                    value: isEnabled,
+                                    activeColor: const Color(0xFF00E5FF),
+                                    onChanged: (val) {
+                                      setState(() {
+                                        if (val == true) {
+                                          _schedule[dayString] = '07:00';
+                                        } else {
+                                          _schedule.remove(dayString);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  trailing: isEnabled
+                                      ? TextButton(
+                                          onPressed: () async {
+                                            final parts = timeString.split(':');
+                                            final initialTime = TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
+                                            final newTime = await showTimePicker(
+                                              context: context,
+                                              initialTime: initialTime,
+                                              builder: (context, child) {
+                                                return Theme(
+                                                  data: ThemeData.dark().copyWith(
+                                                    colorScheme: const ColorScheme.dark(
+                                                      primary: Color(0xFF00E5FF),
+                                                      onPrimary: Colors.black,
+                                                      surface: Color(0xFF161F30),
+                                                      onSurface: Colors.white,
+                                                    ),
+                                                  ),
+                                                  child: child!,
+                                                );
+                                              },
+                                            );
+                                            if (newTime != null && context.mounted) {
+                                              setState(() {
+                                                final h = newTime.hour.toString().padLeft(2, '0');
+                                                final m = newTime.minute.toString().padLeft(2, '0');
+                                                _schedule[dayString] = '$h:$m';
+                                              });
+                                            }
+                                          },
+                                          child: Text(timeString, style: const TextStyle(color: Color(0xFF00E5FF), fontWeight: FontWeight.bold, fontSize: 16)),
+                                        )
+                                      : null,
+                                ),
+                                if (index < 6) const Divider(color: Colors.white10, height: 1),
+                              ],
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+
                     const SizedBox(height: 32),
 
                     // Submit Button
@@ -248,12 +410,21 @@ class _OnboardingViewState extends State<OnboardingView> {
                           context.read<OnboardingCubit>().saveProfile(
                             nameStr: _nameController.text,
                             heightStr: _heightController.text,
+                            heightFtStr: _heightFtController.text,
+                            heightInStr: _heightInController.text,
                             weightStr: _weightController.text,
+                            weightStStr: _weightStController.text,
+                            weightLbsStr: _weightLbsController.text,
                             useWeightVest: _useWeightVest,
                             vestWeightStr: _vestWeightController.text,
+                            vestWeightStStr: _vestWeightStController.text,
+                            vestWeightLbsStr: _vestWeightLbsController.text,
                             exerciseStartingWeights: startingWeights,
                             useMetricSystem: _isMetric,
                             selectedRoutines: _selectedRoutines,
+                            workoutSchedule: _schedule,
+                            enableNotifications: _enableNotifications,
+                            notificationOffsetMinutes: _notificationOffsetMinutes,
                           );
                         },
                         style: ElevatedButton.styleFrom(
@@ -425,5 +596,10 @@ class _OnboardingViewState extends State<OnboardingView> {
         });
       },
     );
+  }
+
+  String _getWeekdayName(int weekday) {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    return days[weekday - 1];
   }
 }
