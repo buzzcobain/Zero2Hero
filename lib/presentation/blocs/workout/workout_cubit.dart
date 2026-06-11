@@ -7,7 +7,9 @@ import '../../../data/repositories/profile_repository.dart';
 import '../../../data/repositories/workout_repository.dart';
 import '../../../domain/met_energy_engine.dart';
 import '../../../domain/progressive_roadmap_engine.dart';
+import '../../../domain/stats_engine.dart';
 import '../../../infrastructure/ad_service.dart';
+import '../../../infrastructure/notification_service.dart';
 
 class WorkoutState {
   final bool isLoading;
@@ -25,6 +27,7 @@ class WorkoutState {
   final bool triggerCameraVault;
   final UserData? userData;
   final List<WorkoutDefinition> availableRoutines;
+  final WeeklyStats? weeklyStats;
 
   const WorkoutState({
     this.isLoading = false,
@@ -42,6 +45,7 @@ class WorkoutState {
     this.triggerCameraVault = false,
     this.userData,
     this.availableRoutines = const [],
+    this.weeklyStats,
   });
 
   WorkoutState copyWith({
@@ -60,6 +64,7 @@ class WorkoutState {
     bool? triggerCameraVault,
     UserData? userData,
     List<WorkoutDefinition>? availableRoutines,
+    WeeklyStats? weeklyStats,
   }) {
     return WorkoutState(
       isLoading: isLoading ?? this.isLoading,
@@ -77,6 +82,7 @@ class WorkoutState {
       triggerCameraVault: triggerCameraVault ?? this.triggerCameraVault,
       userData: userData ?? this.userData,
       availableRoutines: availableRoutines ?? this.availableRoutines,
+      weeklyStats: weeklyStats ?? this.weeklyStats,
     );
   }
 }
@@ -108,14 +114,26 @@ class WorkoutCubit extends Cubit<WorkoutState> {
     final logs = await _workoutRepository.loadWorkoutLogs();
 
     // 1. Determine if Rest Day
-    // Weekdays in Dart: Mon=1, Wed=3, Fri=5
+    final schedule = profileData?.profile.workoutSchedule ?? {'1': '07:00', '3': '07:00', '5': '07:00'};
+    final workoutDays = schedule.keys.map((e) => int.tryParse(e) ?? 1).toList();
+    workoutDays.sort();
+    if (workoutDays.isEmpty) workoutDays.add(1); // fallback
+
     final weekday = currentDate.weekday;
-    final isRest = weekday != 1 && weekday != 3 && weekday != 5;
+    final isRest = !workoutDays.contains(weekday);
     
     String nextDay = '';
-    if (weekday == 2) nextDay = 'Wednesday';
-    else if (weekday == 4) nextDay = 'Friday';
-    else nextDay = 'Monday';
+    int nextDayInt = workoutDays.firstWhere((day) => day > weekday, orElse: () => workoutDays.first);
+    nextDay = _getWeekdayName(nextDayInt);
+
+    // Ensure notifications are scheduled
+    if (profileData != null) {
+      NotificationService().scheduleWorkoutReminders(
+        profileData.profile.workoutSchedule,
+        profileData.profile.notificationOffsetMinutes,
+        profileData.profile.enableNotifications,
+      );
+    }
 
     // 2. Select Routine (alternating based on user's selected routines)
     List<String> selectedRoutineIds = profileData?.profile.selectedRoutines ?? ['chest_arms', 'shoulders_back', 'legs'];
@@ -316,6 +334,21 @@ class WorkoutCubit extends Cubit<WorkoutState> {
     // Save logs offline
     await _workoutRepository.addWorkoutLog(newLog);
 
+    // Calculate weekly stats if it's the end of their workout week
+    final schedule = state.userData?.profile.workoutSchedule ?? {'1': '07:00', '3': '07:00', '5': '07:00'};
+    final workoutDays = schedule.keys.map((e) => int.tryParse(e) ?? 1).toList();
+    workoutDays.sort();
+    if (workoutDays.isEmpty) workoutDays.add(1);
+
+    final todayWeekday = (mockDate ?? DateTime.now()).weekday;
+    final isEndOfWeek = todayWeekday == workoutDays.last;
+
+    WeeklyStats? computedStats;
+    if (isEndOfWeek) {
+      final allLogs = await _workoutRepository.loadWorkoutLogs();
+      computedStats = StatsEngine.computeStats(allLogs, mockDate ?? DateTime.now());
+    }
+
     // Update weights local file if there are micro-loading weight increments
     if (state.userData != null) {
       var updatedWeights = state.userData!.weights;
@@ -344,6 +377,7 @@ class WorkoutCubit extends Cubit<WorkoutState> {
         caloriesBurned: calories,
         isWorkoutFinished: true,
         triggerCameraVault: isFriday,
+        weeklyStats: computedStats,
       ));
     });
   }
@@ -404,8 +438,30 @@ class WorkoutCubit extends Cubit<WorkoutState> {
     }
   }
 
+  Future<void> updateWorkoutSchedule(Map<String, String> schedule, bool enabled, int offset) async {
+    if (state.userData != null) {
+      final updatedProfile = state.userData!.profile.copyWith(
+        workoutSchedule: schedule,
+        enableNotifications: enabled,
+        notificationOffsetMinutes: offset,
+      );
+      final updatedData = UserData(profile: updatedProfile, weights: state.userData!.weights);
+      await _profileRepository.saveProfile(updatedData);
+      
+      await NotificationService().scheduleWorkoutReminders(schedule, offset, enabled);
+
+      emit(state.copyWith(userData: updatedData));
+    }
+  }
+
   void bypassRestDay() {
     emit(state.copyWith(isRestDay: false));
+  }
+
+  String _getWeekdayName(int weekday) {
+    const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    if (weekday >= 1 && weekday <= 7) return days[weekday - 1];
+    return 'Monday';
   }
 
   @override

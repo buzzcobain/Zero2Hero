@@ -6,6 +6,9 @@ class UserProfile {
   final double weightVestKg;
   final bool useMetricSystem;
   final List<String> selectedRoutines;
+  final Map<String, String> workoutSchedule;
+  final bool enableNotifications;
+  final int notificationOffsetMinutes;
 
   UserProfile({
     this.name = 'User',
@@ -15,6 +18,9 @@ class UserProfile {
     required this.weightVestKg,
     this.useMetricSystem = true,
     this.selectedRoutines = const ['chest_arms', 'shoulders_back', 'legs'],
+    this.workoutSchedule = const {'1': '07:00', '3': '07:00', '5': '07:00'},
+    this.enableNotifications = true,
+    this.notificationOffsetMinutes = 10,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
@@ -26,6 +32,9 @@ class UserProfile {
       weightVestKg: (json['weight_vest_kg'] as num).toDouble(),
       useMetricSystem: json['use_metric_system'] as bool? ?? true,
       selectedRoutines: (json['selected_routines'] as List?)?.map((e) => e as String).toList() ?? ['chest_arms', 'shoulders_back', 'legs'],
+      workoutSchedule: (json['workout_schedule'] as Map<String, dynamic>?)?.map((k, v) => MapEntry(k, v as String)) ?? {'1': '07:00', '3': '07:00', '5': '07:00'},
+      enableNotifications: json['enable_notifications'] as bool? ?? true,
+      notificationOffsetMinutes: json['notification_offset_minutes'] as int? ?? 10,
     );
   }
 
@@ -38,6 +47,9 @@ class UserProfile {
       'weight_vest_kg': weightVestKg,
       'use_metric_system': useMetricSystem,
       'selected_routines': selectedRoutines,
+      'workout_schedule': workoutSchedule,
+      'enable_notifications': enableNotifications,
+      'notification_offset_minutes': notificationOffsetMinutes,
     };
   }
 
@@ -49,6 +61,9 @@ class UserProfile {
     double? weightVestKg,
     bool? useMetricSystem,
     List<String>? selectedRoutines,
+    Map<String, String>? workoutSchedule,
+    bool? enableNotifications,
+    int? notificationOffsetMinutes,
   }) {
     return UserProfile(
       name: name ?? this.name,
@@ -58,6 +73,9 @@ class UserProfile {
       weightVestKg: weightVestKg ?? this.weightVestKg,
       useMetricSystem: useMetricSystem ?? this.useMetricSystem,
       selectedRoutines: selectedRoutines ?? this.selectedRoutines,
+      workoutSchedule: workoutSchedule ?? this.workoutSchedule,
+      enableNotifications: enableNotifications ?? this.enableNotifications,
+      notificationOffsetMinutes: notificationOffsetMinutes ?? this.notificationOffsetMinutes,
     );
   }
 }

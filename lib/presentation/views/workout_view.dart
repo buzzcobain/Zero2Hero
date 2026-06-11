@@ -364,6 +364,49 @@ class WorkoutView extends StatelessWidget {
                   ],
                 ),
 
+                if (state.weeklyStats != null) ...[
+                  const SizedBox(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161F30),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF00E5FF).withOpacity(0.3)),
+                    ),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'WEEKLY SUMMARY',
+                          style: TextStyle(color: Color(0xFF00E5FF), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1),
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceAround,
+                          children: [
+                            _buildStatItem('THIS WEEK', '${state.weeklyStats!.repsThisWeek}', 'reps'),
+                            _buildStatItem('THIS MONTH', '${state.weeklyStats!.repsThisMonth}', 'reps'),
+                            _buildStatItem('ALL TIME', '${state.weeklyStats!.repsTotal}', 'reps'),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        const Divider(color: Colors.white10),
+                        const SizedBox(height: 16),
+                        Text(
+                          'You have lifted a total of ${state.weeklyStats!.weightTotalKg.toInt()} kg!',
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'That\'s equivalent to a ${state.weeklyStats!.animalEquivalent} ${state.weeklyStats!.animalEmoji}',
+                          style: const TextStyle(color: Color(0xFF00E676), fontSize: 16, fontWeight: FontWeight.bold),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
                 const Spacer(),
 
                 // Conditional Friday Vault Intercept
@@ -428,6 +471,17 @@ class WorkoutView extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, String unit) {
+    return Column(
+      children: [
+        Text(value, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+        Text(unit, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(color: Colors.white38, fontSize: 10, letterSpacing: 0.5)),
+      ],
     );
   }
 }

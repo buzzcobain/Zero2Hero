@@ -4,6 +4,7 @@ import 'data/repositories/profile_repository.dart';
 import 'data/repositories/workout_repository.dart';
 import 'infrastructure/ad_service.dart';
 import 'infrastructure/camera_device_wrapper.dart';
+import 'infrastructure/notification_service.dart';
 import 'presentation/blocs/onboarding/onboarding_cubit.dart';
 import 'presentation/blocs/workout/workout_cubit.dart';
 import 'presentation/blocs/timelapse/timelapse_cubit.dart';
@@ -15,6 +16,10 @@ void main() async {
   
   final adService = AdmobService();
   await adService.initialize();
+
+  final notificationService = NotificationService();
+  await notificationService.init();
+  await notificationService.requestPermissions();
 
   runApp(
     MyApp(
