@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/workout/workout_cubit.dart';
 import '../blocs/onboarding/onboarding_cubit.dart';
 import '../../../data/repositories/profile_repository.dart';
+import '../widgets/scroll_indicator_wrapper.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -24,9 +25,10 @@ class SettingsView extends StatelessWidget {
           final enableNotifs = state.userData?.profile.enableNotifications ?? true;
           final offsetMins = state.userData?.profile.notificationOffsetMinutes ?? 10;
           
-          return ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
+          return ScrollIndicatorWrapper(
+            child: ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
               const Text('GENERAL', style: TextStyle(color: Color(0xFF00E5FF), fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1)),
               const SizedBox(height: 16),
               SwitchListTile(
@@ -208,7 +210,8 @@ class SettingsView extends StatelessWidget {
                   ),
                 ),
               ),
-            ],
+              ],
+            ),
           );
         },
       ),

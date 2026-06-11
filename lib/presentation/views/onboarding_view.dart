@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/onboarding/onboarding_cubit.dart';
+import '../widgets/scroll_indicator_wrapper.dart';
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({super.key});
@@ -77,10 +78,9 @@ class _OnboardingViewState extends State<OnboardingView> {
         child: SafeArea(
           child: BlocBuilder<OnboardingCubit, OnboardingState>(
             builder: (context, state) {
-              return SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+              return ScrollIndicatorWrapper(
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   children: [
                     const SizedBox(height: 20),
                     Center(
